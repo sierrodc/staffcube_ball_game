@@ -24,7 +24,7 @@ function createPlayer(id) {
 
 function init() {
 	
-	webSocket = new WebSocket('ws://localhost:5000');
+	webSocket = new WebSocket('ws://' + location.host);
 	webSocket.onopen = () => {
 		webSocket.send(JSON.stringify({ command: "join" }));
 	};
