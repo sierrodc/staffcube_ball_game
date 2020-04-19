@@ -14,8 +14,8 @@ function createPlayer(id) {
 	circle.graphics.beginFill("red").drawCircle(0, 0, 20);
 	circle.teta = 0;
 	circle.vel  = 0;
-	circle.stepx = 0;
-	circle.stepy = 0;
+	circle.x = 0;
+	circle.y = 0;
 	circle.id = id;
 	players[id] = circle;
 	stage.addChild(circle);
@@ -26,26 +26,31 @@ function init() {
 	
 	webSocket = new WebSocket('ws://' + location.host);
 	webSocket.onopen = () => {
-		webSocket.send(JSON.stringify({ command: "join" }));
+		webSocket.send(JSON.stringify({ c: "join" }));
 	};
 	webSocket.onmessage = (evt) => { 
 		var msg = JSON.parse(evt.data);
-		switch(msg.command) {
+		switch(msg.c) {
 			case 'join_accepted':
-				currentPlayer = createPlayer(+msg.data);
+				currentPlayer = createPlayer(+msg.id);
 				line.graphics.moveTo(currentPlayer.x, currentPlayer.y);
 				createjs.Ticker.on("tick", tick);
 				break;
-			case 'player_update':
-				var p = players[msg.id];
-				if(!p)
-					p = createPlayer(msg.id);
-				
-				p.x = msg.x;
-				p.y = msg.y;
-				p.vel = msg.vel;
-				p.teta = msg.teta;
-				
+			case 'u':
+				if(currentPlayer.id === +msg.id) {
+					var currentTime = (new Date()).getTime();
+					var delta = currentTime - +msg.ts;
+					console.log(`elapsed: ${delta} ms`)
+				} else {
+					var p = players[+msg.id];
+					if(!p)
+						p = createPlayer(msg.id);
+					
+					p.x = msg.x;
+					p.y = msg.y;
+					p.vel = msg.v;
+					p.teta = msg.t;
+				}
 				break;
 			default:
 				break;
@@ -76,30 +81,39 @@ function keyPressed(event) {
 	if(!currentPlayer) {
 		return;
 	}
+
+	var updated = false;
 	
 	switch(event.keyCode) {
 		case KEYCODE_LEFT:	
 			currentPlayer.teta -= 5;
+			updated = true;
 			break;
 		case KEYCODE_RIGHT: 
 			currentPlayer.teta += 5; 
+			updated = true;
 			break;
 		case KEYCODE_UP: 
 			currentPlayer.vel -= 5;
+			updated = true;
 			break;
 		case KEYCODE_DOWN: 
 			currentPlayer.vel += 5;
+			updated = true;
 			break;
 	}
 	
-	webSocket.send(JSON.stringify({ 
-		id: currentPlayer.id,
-		x: currentPlayer.x,
-		y: currentPlayer.y,
-		vel: currentPlayer.vel,
-		teta: currentPlayer.teta,
-		command: "player_update" 
-	}));
+	if(updated) {
+		webSocket.send(JSON.stringify({ 
+			id: currentPlayer.id,
+			x: Math.round(currentPlayer.x*10000)/10000,
+			y: Math.round(currentPlayer.y*10000)/10000,
+			v: currentPlayer.vel,
+			t: currentPlayer.teta,
+			ts: (new Date()).getTime(),
+			c: "u" 
+		}));
+	}
 }
 
 

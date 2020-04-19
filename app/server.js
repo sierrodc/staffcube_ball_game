@@ -17,14 +17,15 @@ httpServer.on('request', app);
 webSocketServer.on('connection', ws => {
   ws.on('message', msg_data => {
 	msg = JSON.parse(msg_data);
-	switch(msg.command) {
+	switch(msg.c) {
 		case "join":
 			ws.send(JSON.stringify({ 
-				command: 'join_accepted', 
-				data: nextPlayerId++ 
+				c: 'join_accepted', 
+				id: nextPlayerId++ 
 			}));
 			break;
 		default:
+			// send update to everybody
 			webSocketServer.clients.forEach(client => {
 				if (client.readyState === WebSocket.OPEN) {
 				  client.send(msg_data);
